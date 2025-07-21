@@ -1,61 +1,43 @@
-# Welcome to the Smart Card Laboratory!
+🔐 SmartCard Security Project – TUM SmartCard Lab
 
-## Resources for the Lab
-* For all documentation, such as the lab script, datasheets, reference manuals, reference implementations, please
-  visit the course's moodle page.
-* A template for your lab protocol can be found here: [here](./templates/benchmarks_template.md)
-* A template for the benchmark results can be found here: [here](./templates/lab_report_template.md)
+This repository documents the implementation and evaluation of secure SmartCard communication, conducted as part of the SmartCard Lab at the Technical University of Munich (TUM). The project was completed in collaboration with Sevan and focused on analyzing protocol-level vulnerabilities and reinforcing the system against physical and logical attacks.
 
-## Useful (external) resources
+⸻
 
- * Smart Card Handbook (online) - can be found [here](https://opac.ub.tum.de/search?bvnr=BV019271999)
- * Power analysis attacks - revealing the secrets of smart cards - can be found [here](https://opac.ub.tum.de/search?bvnr=BV036480550)
- * Understanding cryptography -a textbook for students and practitioners- can be found [here](https://opac.ub.tum.de/search?bvnr=BV039865382)
+🧩 Part 1 – Communication Setup & Protocol Analysis
 
+The first phase focused on establishing a working SmartCard communication stack based on ISO/IEC 7816-3 and the T=0 protocol. This involved building the foundational firmware and host interface to support structured data exchange between a terminal and the SmartCard.
 
-## Initializing submodules in this Repository
+🔧 Key Components:
+	•	USART initialization for ISO 7816-3-compliant asynchronous communication
+	•	Implementation of the T=0 character-level protocol
+	•	Handling of APDU command parsing and response formatting
+	•	Logging and visualization of command exchanges using logic analyzers
 
-In order to compile the demo smartcard os in `demo_os_stm32f051`, you need the Open source ARM
-Cortex-M microcontroller library `libopencm3` (https://github.com/libopencm3/libopencm3).
-It is already included as a submodule in the git repository. In order to use it, please execute the
-following steps.
+🛠️ Tools & Technologies:
+	•	STM32 microcontroller (ARM Cortex-M)
+	•	Low-level C firmware
+	•	Hardware debugging tools (logic analyzer, serial monitor)
 
-### Initialize the submodule
+⸻
 
-As first step, in your shell execute the following command in the directory of this Readme.
+🎯 Part 2 – Side-Channel Attack & Countermeasures
 
-```
-$ git submodule init
-```
-### Update the submodule
+In the second phase, the focus shifted to security evaluation through Differential Power Analysis (DPA) and countermeasure implementation.
 
-As soon as the submodule is initialized, download it.
+🧪 Attack Execution:
+	•	Collected power traces during AES execution
+	•	Analyzed data leakage patterns from intermediate rounds
+	•	Demonstrated potential key recovery under unprotected conditions
 
-```
-$ git submodule update
-```
+🔐 Hardening Techniques:
+	•	Introduced masking and shuffling countermeasures in AES S-box operations
+	•	Measured and compared power trace uniformity before and after protection
+	•	Evaluated the performance-security trade-off of implemented defenses
 
-### Build the libopencm3 lib
+⸻
 
-Build the necessary libopencm3 libraries for the stm32f0 to be linked to your binaries.
-
-```
-$ cd demo_os_stm32f051/libopencm3
-$ make TARGETS=stm32/f0
-```
-
-### Build the test program
-
-Lastly, you can use the Makefile in `demo_os_stm32f051` to build the demo program.
-For flashing use either one of the flash scripts in the `scripts` directory.
-
-**Important Notice:**  
-If you are working on the student lab PCs, you should not use the system's openocd version,
-but the one provided by the SEC nas. In order to enable this config, execute the following
-on every fresh terminal you want to use openOCD on.
-
-```
-module use /nas/ei/share/sec/tools/modulefiles
-module load openocd/latest
-```
-
+📈 Outcomes
+	•	Established secure, ISO-compliant SmartCard communication from scratch
+	•	Demonstrated the feasibility of DPA attacks on embedded crypto implementations
+	•	Successfully implemented and validated lightweight software-level defenses
