@@ -35,14 +35,5 @@ In the second phase, the focus shifted to **security evaluation** through **Diff
 - Measured and compared power trace uniformity before and after protection
 - Evaluated the performance-security trade-off of implemented defenses
 
----
 
-## 📈 Outcomes
 
-- Established secure, ISO-compliant SmartCard communication from scratch  
-- Demonstrated the feasibility of DPA attacks on embedded crypto implementations  
-- Successfully implemented and validated lightweight software-level defenses
-
----
-
-> ✳️ *For further information, APDU logs or power trace visualizations can be added upon request.*
