@@ -1,0 +1,8 @@
+{
+	"files.associations": {
+		"*.json": "json",
+		"entropy.h": "c",
+		"nvic.h": "c",
+		"sc_system.h": "c"
+	}
+}

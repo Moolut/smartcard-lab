@@ -1,0 +1,6 @@
+# This is used with openocd and stlink
+
+target remote localhost:3333
+
+# Halt the chip
+monitor reset halt

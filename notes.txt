@@ -1,0 +1,241 @@
+
+######
+Guard time ne?
+-The time between the STOP bit and the NEXT START bit receives the name of guard time
+
+-After stop bit -> I/O line returns to HIGH
+-IF error -> receiver I/O line LOW for 1 etu starting at half an etu of the stop bit
+         -> Transmitter must check the IO line during the stop bit and if it is low re-send the char.
+
+
+
+######
+ETU ne, neden CARD READER!!!!!_FREQ/372?
+- The duration of a bit is called an elementary-time-unit (ETU)
+- ETU = count of F/D clock cycles on the CLK pin
+- F => clock rate conversion integer, D => baud rate adjustment integer
+- 1etu = (F/D) * 1/f
+
+	•	This ensures a fixed timing relationship between transmitted bits.
+
+- Comm. between smartcard-terminal occurs async. => no shared timing signal 
+    => to avoid errors during sampling => synch. between clock is needed
+    => SET BAUD RATE = F/372 => 4.75MHz / 372
+
+-Start bit -> I/O signal low for 1 etu time
+
+######
+ATR?
+
+- contains info. about the card and established COMM. PARAMS
+- LAB 
+    -> SHORT ATR 
+        => bit convention,
+           clock rate division (F),
+           bit rate adjustment factor (D)
+
+
+- ATR => TS, T0, TA1, TD1
+- TS: initial character => 3B -> direct convention (MANDATORY)
+- T0: format character => 90 -> SiglTV coding format (MANDATORY)
+- TA1: interface character => 11
+- TD1: interface character => 00
+
+- IF NOT VALID ATR RECEIVED
+    => terminal will shut down the clock signal after a timeout period
+
+######
+T=0 Protocol??
+
+After ATR -> COMMANDS
+
+COMMAND STRUCT => CLA | INS | P1-P3
+
+BYTE    VALUE   action          Followed by 
+NULL    ’60’    No action       A procedure byte
+SW1     6X,9X   No action       A SW2 byte
+ACK     INS     All rem. data   A procedure byte
+    INS XOR FF  Next byte       A procedure byte
+
+
+COMM:   0x88, 0x10, 0x00, 0x00, 0x10
+ACK:    0x10 -> SEND ALL REMAINING data
+..... 16-byte DATA .....
+RESP:   0x61, 0x10
+
+COMM:   0x88, 0xC0, 0x00, 0x00, 0x10
+ACK:    0xC0 -> SEND ALL REMAINING DATA
+..... 16-byte DATA .....
+RESP:   0x90, 0x00
+
+######
+USART CONFIG:
+Configured the packet structure for ISO protocol: 8 data bits, 1 even parity bit, and 1.5 stop bits.
+• Set the correct baud rate (CARD_READER_𝐶𝐿𝑂𝐶𝐾/372) and enabled SmartCard mode.
+• Used polling for communication with custom functions, where data transfer/reception was managed by checking the transmitter/receiver buffer status.
+• As the protocol is half-duplex (single-wire), mode was switched before each packet transfer/reception.
+
+######
+ADC CONFIG
+
+Internal temperature sensor introduces natural variability and noise.
+A sampling time of 13.5 cycles is selected to balance noise capture and conversion speed.
+The ADC operates at 12-bit resolution.
+Internal temperature sensor channel is sampled to leverage its inherent noise.
+
+Only the least significant bit (LSB) of each conversion is extracted. An
+XOR-based correction is applied to ensure randomness by introducing variability into the raw LSB sequence.
+
+32-bit value -> 64 ADC conversions (2bit -> XOR => 1 bit)
+
+######
+HIDING COUNTERMEASURES
+
+Maintain the same current consumption => ON HW -> Not applicable for the lab
+Randomize the current consumption => ON SW
+    - SHUFFLING
+        Shuffling is used to modify the time instance of the intermediate values and is performed
+by modifying the order in which the operations are performed.
+    - Dummy OP
+        Dummy operations on the other hand inserts operations which are not part of the original 
+        algorithm in order to affect the alignment of the measurements.
+
+######
+MASKING
+Masking aims to make the power consumption independent of the intermediate values, by
+transforming the intermediate values in such a way that an attacker will not be able to predict
+them, and thus will not be able to compute a valid hypothesis.
+
+v' = v XOR mask
+
+######
+OWN OS SHUFFLING => TIME AXIS, DONE ON SW
+
+for (uint8_t i = 0; i < len; i++)
+    {
+        perm[i] = i; // Initialize with identity mapping
+    }
+    // Shuffle the array using Fisher-Yates algorithm
+    for (uint8_t i = len - 1; i > 0; i--)
+    {
+        uint32_t rand = PRNG_Generate();
+        uint8_t j = rand % (i + 1);
+        // Swap perm[i] and perm[j]
+        uint8_t temp = perm[i];
+        perm[i] = perm[j];
+        perm[j] = temp;
+    }
+
+-FISHER-YATES Alg
+-The permutation was applied during the AddRoundKey and InvSubBytes stages of AES dec.
+
+######
+OWN OS DUMMYOP => TIME AXIS, DONE ON SW
+
+- 100dummyop
+- mimic SBOX op, XOR result to prevent compiler optimization
+- random distribution => randomly allocate across AES rounds
+- random ordering => %50 before or after
+
+######
+OWN MASKING => TIME AXIS, DONE ON SW
+
+10 MASKS 
+    => m, m' and m1-m4 => random
+    => m1'-m4' are computed by m1-m4
+
+    => m & m'           -> in/out INV SUB BYTES
+    => m1-m4 & m1'-m4'  -> in/out INV MIX COL
+
+Mask Initialization → Masked AddRK → [InvSR → Masked InvSB → Masked AddRK →
+(InvMC→ ReMask)]→ FinalReMask.
+
+
+######
+Neden dec'da son roundu ölçüyoruz?
+- InvMixCol operasyonu yok, daha basit analiz yapmamızı sağlıyor.
+
+######
+xtime ve Multiply fonksiyonları ne?
+- MIX COLUMN OPERASYONLARINDA KULLANILIYOR
+
+-AES finite field arithmetic over GF 2^8 yapmamızı sağlıyor
+-xtime => x'i 2 ile çarpıyor in (GF 2^8), GALOIS FILED MULT. by 2
+    - (x << 1) => 2 ile çarpmayı yapmakta
+    - (x >> 7 & 1) == 1 ise 0x1b ile modulo reduction yapılmakta
+    -              == 0 ise bir şey yapılmamakta
+
+- Multiply fonksiyonu => x * y in GF 2^8
+    - efficiently computes x * y using XOR instead of traditional multiplication
+
+    - MIX COLUMN
+        - 2 3 1 1
+          1 2 3 1
+          1 1 2 3
+          3 1 1 2
+        
+        - bu matrix ile multiplication yapılmakta
+
+######
+static const uint8_t Rcon[11] = {
+    0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
+
+Bu Rcon ne?
+
+- Round Constant => AES key expansionda kullanılıyor
+- initial key -> round key oluşturulurken kullanılıyor
+- her bir round key'in unique olmasını sağlıyor
+- ilk değer 0x8d kullanılmamakta, geriye kalan 10 değer kullanılıyor
+
+- ÖRNEK
+    -Let’s assume the initial key is: 
+    2b 7e 15 16  28 ae d2 a6  ab f7 69 16  a4 88 31 6e
+    -When expanding the key for round 1, the Rcon value 0x01 is applied:
+        -Perform RotWord: 
+        2b -> 7e -> 15 -> 16  →  7e 15 16 2b
+        -Apply SubWord using the AES S-Box:
+        (S-Box lookup applied to each byte)
+        - XOR with Rcon[1] = 0x01:
+        (new first byte) ⊕ 0x01
+    -The result is used to generate the next word in the key schedule.
+
+######
+Neden dec'in son roundında InvMixCol yok?
+-  AES Key Expansion Ensures We Don’t Need InvMixColumns in the Last Round
+-  Key expansion in AES is designed so that each round key maintains the necessary structure.
+
+
+######
+Why S-BOX stage is attacked?
+
+- introduce non-linearity -> byte substituion => thus power consumption is leaked
+    - one-bit difference at the input of an S-box leads to a difference of several bits at the output
+- direct relationship with the key
+- CONFUSION
+
+An attacker can guess a key byte, compute the corresponding S-Box output, and correlate it with power traces.
+The attacker guesses the key, computes Hamming weight of S-Box output, and compares it to measured power traces.
+
+
+r(i,j) = SUM[(H_i - mean(H_i)) * (T_j - mean(T_j))] 
+         ---------------------------------------------------
+         sqrt(SUM[(H_i - mean(H_i))^2]) * sqrt(SUM[(T_j - mean(T_j))^2])
+
+	•	r(i,j) → Correlation coefficient for key guess i and time sample j.
+	•	H_i → Column i from the hypothetical power matrix H.
+        •	 H_i  = Hypothetical power values for key guess i.
+
+	•	T_j → Column j from the measured power matrix T.
+        •	 T_j  = Measured power values at time sample j.
+
+	•	mean(H_i) → Mean of column H_i.
+	•	mean(T_j) → Mean of column T_j.
+	•	SUM[…] → Summation over all power traces.
+
+This results in a K × T correlation matrix R, where:
+	•	Each row corresponds to a key guess.
+	•	Each column corresponds to a time sample.
+
+#######
+
+MIX COL + SHIFT ROW => difusion

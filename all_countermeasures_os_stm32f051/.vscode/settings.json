@@ -1,0 +1,7 @@
+{
+	"files.associations": {
+		"*.json": "json",
+		"string.h": "c",
+		"adc.h": "c"
+	}
+}

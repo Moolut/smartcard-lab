@@ -1,0 +1,10 @@
+
+# Note: We assume the cpu is in reset or has been halted at least
+#       If we would issue monitor reset halt, the error message at BMP is
+#       error erasing vflash packet. This is because it proceeds to fast after srst
+#       Instead, we move the reset to the gdb_conn_stlink file and use connect under
+#       reset at bmp
+
+load
+monitor reset run
+quit

@@ -1,0 +1,13 @@
+{
+	"files.associations": {
+		"*.json": "json",
+		"shuffle.h": "c",
+		"sc_system.h": "c",
+		"string.h": "c",
+		"usart.h": "c",
+		"prng.h": "c",
+		"entropy.h": "c",
+		"stdint.h": "c",
+		"timer.h": "c"
+	}
+}

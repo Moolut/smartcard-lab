@@ -1,0 +1,95 @@
+#include "sc_system.h"
+#include "usart.h"
+#include "iso_protocol.h"
+
+// Define states
+
+const uint8_t MASTER_KEY[16] = {0xA2, 0xD0, 0xF1, 0x24, 0x4A, 0xAA, 0x94, 0xD0, 0xA7, 0x25, 0x4F, 0x26, 0xEB, 0x6D, 0x88, 0x05};
+struct AES_ctx aes_ctx;
+
+int main(void)
+{
+
+    // There are 3 active states to be taken into account:
+
+    // ------------------------------ 1. POWER-UP state ------------------------------
+    // HW configuration & initialization routines
+    // Finished by sending an "Answer to Reset" (ATR) to the terminal
+
+    // ------------------------------ 2. WAIT state ------------------------------
+    // Waits for a command from the terminal
+    // Once commands are sent, the "Communication Interface" (CI) is in charge of
+    // - sampling the signals
+    // - transforming the signals into bits
+    // - concatenating the bits into bytes
+    // Error detection and correction is also performed in this state
+    // If the command is correct, then the card goes into the "Command Execution" (CE) state
+
+    // ------------------------------ 3. EXECUTE COMMAND state ------------------------------
+    // The command is decoded and executed
+    // After the command is executed, the card goes back to the "WAIT" state
+
+    // ------------------------------ COMMUNICATION INTERFACE (CI) ------------------------------
+    // Data comm. occurs over the ISO7816 I/O contact
+    // Asynchronous, half-duplex => I/O pin is bidirectional => Used for both transmitting and receiving data
+
+    // 1 start bit, 8 data bits, 1 parity bit, 2 stop bits
+    // Time between stop bit and start bit is the "Guard Time" (GT)
+
+    // The duration of a bit is called an "Elementary Time Unit" (ETU)
+    // ETU = (F / D) * (1/f) => F: is the clock rate conversion integer, D: is the baud rate adjustment integer
+    // Default value for F is 372 and for D is 1
+
+    // Since the comm. between the card and the terminal is asynchronous, 1SYNCHRONIZATION IS NEEDED!
+
+    // ANSWER TO RESET (ATR):
+    // - The terminal opens the communication by setting the RST signal to high
+    // - The card responds by sending the ATR over the I/O-pin
+    //      - The ATR is a sequence of bytes that contains information about the card:
+    //          - the bit convention,
+    //          - clock rate division factor (F),
+    //          - bit rate adjustment factor (D)
+    //      - The characters which compose this ATR sequence are:
+    //          - TS: Inıtial character -> first byte of the ATR and MUST ALWAYS BE SENT.
+    //              - "3B" => with the direct convention (FOR THIS LAB THIS IS THE CASE)
+    //              - "3F" => with the inverse convention
+    //          - T0: Format character -> second byte of the ATR
+    //              - "0x90" => in the case of "SiglTV"
+    //          - TA1 & TD1: (OPTIONAL) interface characters
+    //              - TA1: 0x11
+    //              - TD1: 0x00
+    //          TS | T0 | TA1 | TD1
+    // ATR => 0x3B | 0x90 | 0x11 | 0x00
+
+    // T=0 PROTOCOL:
+    // After the ATR is sent, the card waits for instructions from the terminal
+    // Command structure HEADER (5 bytes): Class byte (CLA) | Instruction byte (INS) | Parameter bytes (P1-to-P3) | Data bytes
+
+    // After transmitting the header the terminal waits for a procedure byte
+    // |--------Byte--------|--------Value-------------------|--------Action on data transfer--------|-------- Followed by -------------|
+    // |--------NULL--------|--------0x60 -------------------|-------- No action --------------------|-------- A procedure byte --------|
+    // |--------SW1 --------|--------0x6X(!=60) & 9x --------|-------- No action --------------------|-------- A SW2 byte --------------|
+    // |-------- ACK--------|--------INS --------------------|-------- All remaining data bytes -----|-------- A procedure byte --------|
+    //
+
+    // Define state variable
+
+    sys_rcc_init();
+    // Init the GPIOs so we can config
+    // the clock source and ISO7816 reset behavior
+    sys_gpio_init();
+    sys_set_clksource(SYSTEM_CLKSOURCE_EXT_8MHZ);
+    sys_set_reset_source(SYSTEM_RSTSRC_DBG_ONLY);
+
+    AES_init_ctx(&aes_ctx, MASTER_KEY);
+    usart_init();
+
+    send_atr_command();
+    while (1)
+    {
+        start_iso7816(&aes_ctx);
+    }
+
+
+    return 0;
+}

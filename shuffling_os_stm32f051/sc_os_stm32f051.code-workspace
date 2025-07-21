@@ -1,0 +1,32 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.json": "json",
+			"sc_system.h": "c",
+			"array": "c",
+			"string": "c",
+			"string_view": "c",
+			"vector": "c",
+			"stdio.h": "c",
+			"iso_protocol.h": "c",
+			"rtc.h": "c",
+			"gpio.h": "c",
+			"nvic.h": "c",
+			"pwr.h": "c",
+			"rcc.h": "c",
+			"timer.h": "c",
+			"timer_common_f24.h": "c",
+			"timer_common_all.h": "c",
+			"systick.h": "c",
+			"stddef.h": "c",
+			"__node_handle": "c",
+			"ratio": "c",
+			"shuffle.h": "c"
+		}
+	}
+}
